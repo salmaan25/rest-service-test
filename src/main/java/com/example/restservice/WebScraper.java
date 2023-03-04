@@ -3,7 +3,11 @@ package com.example.restservice;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.jayway.jsonpath.JsonPath;
-import net.minidev.json.JSONObject;
+
+import org.asynchttpclient.*;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -16,6 +20,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,8 +54,7 @@ public class WebScraper {
         WebClient webClient = new WebClient();
         webClient.getOptions().setCssEnabled(false);
         webClient.getOptions().setJavaScriptEnabled(false);
-//        HtmlPage page = webClient.getPage("https://librivox.org/the-first-men-in-the-moon-by-hg-wells");
-        HtmlPage myPage = webClient.getPage("https://www.instagram.com/reel/CpS6RIDjC7D/?utm_source=ig_web_copy_link");
+        HtmlPage myPage = webClient.getPage("https://www.instagram.com/reel/CmV4inaPmRj/?utm_source=ig_web_copy_link");
 
         // convert page to generated HTML and convert to document
         Document doc = Jsoup.parse(myPage.asXml());
@@ -59,22 +63,41 @@ public class WebScraper {
         Elements videoElement = getScriptElementContainingVideoUrl(doc);
         List<String> relevantTagWithMp4Url = getSingleScriptElementWithVideoUrl(videoElement);
         String scriptInnerHtml = relevantTagWithMp4Url.get(0);
+        scriptInnerHtml.strip();
+        if (scriptInnerHtml.startsWith("\r\n//<![CDATA["))
+            scriptInnerHtml = scriptInnerHtml.substring("\r\n//<![CDATA[".length());
+        if(scriptInnerHtml.contains("//]]>"))
+            scriptInnerHtml = scriptInnerHtml.substring(0, scriptInnerHtml.indexOf("//]]>"));
 
-        List<String> videoUrl = JsonPath.read(scriptInnerHtml, "$..video_url");
+        JSONParser parser = new JSONParser();
+        JSONObject json = (JSONObject) parser.parse(scriptInnerHtml);
 
-        System.out.println("Video Url: " + getVideoUrl(scriptInnerHtml));
-
-        // iterate row and col
-//        for (Element row : doc.select("table#data > tbody > tr"))
-//
-//            for (Element col : row.select("td"))
-//
-//                // print results
-//                System.out.println(col.ownText());
-
-        // clean up resources
+        String url = ((JSONObject)((JSONArray)json.get("video")).get(0)).get("contentUrl").toString();
         webClient.close();
+
+
+        AsyncHttpClient client = Dsl.asyncHttpClient();
+        FileOutputStream stream = new FileOutputStream("video2.mp4");
+
+        client.prepareGet(url).execute(new AsyncCompletionHandler<FileOutputStream>() {
+
+            @Override
+            public State onBodyPartReceived(HttpResponseBodyPart bodyPart)
+                    throws Exception {
+                stream.getChannel().write(bodyPart.getBodyByteBuffer());
+                return State.CONTINUE;
+            }
+
+            @Override
+            public FileOutputStream onCompleted(Response response)
+                    throws Exception {
+                System.out.println("Save Complete");
+                return stream;
+            }
+        });
+
     }
+
 
     private static Elements getScriptElementContainingVideoUrl(Document doc) {
         return doc.select("script");
@@ -90,13 +113,6 @@ public class WebScraper {
         }
 
         return relevantTagWithMp4Url;
-    }
-
-    private static String getVideoUrl(String videoElement) {
-        String[] jsonResponse = videoElement.split("\"contentUrl\":");
-        // $.. is equivalent to $.[*] - (a wild card matcher) - you may need to play with this
-        List<String> videoUrl = JsonPath.read(jsonResponse, "$..video_url");
-        return videoUrl.get(0);
     }
 
 }
