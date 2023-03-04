@@ -20,8 +20,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,7 +49,7 @@ public class WebScraper {
         return firstHeading.text();
     }
 
-    public static void findVideoUrl() throws Exception {
+    public static String findVideoUrl() throws Exception {
         WebClient webClient = new WebClient();
         webClient.getOptions().setCssEnabled(false);
         webClient.getOptions().setJavaScriptEnabled(false);
@@ -96,6 +95,15 @@ public class WebScraper {
             }
         });
 
+        return url;
+
+    }
+
+    public static InputStream LoadFile()  throws Exception {
+        File file = new File("C:\\Coding\\Spring-demo\\demo\\rest-service-test\\src\\main\\java\\com\\example\\restservice\\video2.mp4");
+
+        InputStream inputStream = new FileInputStream(file);
+        return inputStream;
     }
 
 

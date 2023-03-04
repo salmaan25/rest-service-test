@@ -3,6 +3,7 @@ package com.example.restservice;
 import org.jsoup.nodes.Element;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,7 +29,7 @@ public class GreetingController {
     }
 
     @GetMapping("/get-html-from-url")
-    public Greeting getHtmlFromUrl(@RequestParam(value = "url", defaultValue = "") String url) throws  Exception {
+    public String getHtmlFromUrl(@RequestParam(value = "url", defaultValue = "") String url) throws  Exception {
 //        Document document = WebScraper.getDocument("https://www.instagram.com/reel/CpS6RIDjC7D/?utm_source=ig_web_copy_link");
 //        String htmlString = document.toString();
 ////        String heading = WebScraper.findHeading(document);
@@ -43,6 +44,14 @@ public class GreetingController {
 //        ig.start();
 
         WebScraper.findVideoUrl();
-        return new Greeting(counter.incrementAndGet(), String.format(template, "fdsf"));
+        return WebScraper.findVideoUrl();
     }
+
+
+    @GetMapping("/get-video")
+    public InputStream getVideo() throws  Exception {
+        return WebScraper.LoadFile();
+    }
+
+
 }
