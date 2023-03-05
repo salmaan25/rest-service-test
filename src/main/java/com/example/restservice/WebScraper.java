@@ -53,7 +53,7 @@ public class WebScraper {
         WebClient webClient = new WebClient();
         webClient.getOptions().setCssEnabled(false);
         webClient.getOptions().setJavaScriptEnabled(false);
-        HtmlPage myPage = webClient.getPage("https://www.instagram.com/reel/CmV4inaPmRj/?utm_source=ig_web_copy_link");
+        HtmlPage myPage = webClient.getPage("https://www.instagram.com/reel/CpEquOwItqE/?igshid=YmMyMTA2M2Y=");
 
         // convert page to generated HTML and convert to document
         Document doc = Jsoup.parse(myPage.asXml());
@@ -100,7 +100,7 @@ public class WebScraper {
     }
 
     public static InputStream LoadFile()  throws Exception {
-        File file = new File("C:\\Coding\\Spring-demo\\demo\\rest-service-test\\src\\main\\java\\com\\example\\restservice\\video2.mp4");
+        File file = new File("/Users/salmaanshahid/Documents/GitHub/rest-service-test/src/main/java/com/example/restservice/video2.mp4");
 
         InputStream inputStream = new FileInputStream(file);
         return inputStream;
