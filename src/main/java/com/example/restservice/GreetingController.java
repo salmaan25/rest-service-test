@@ -1,14 +1,16 @@
 package com.example.restservice;
 
+import com.example.restservice.storage.StorageService;
+import org.json.simple.JSONObject;
 import org.jsoup.nodes.Element;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import org.jsoup.nodes.Document;
 
@@ -18,6 +20,13 @@ import javax.swing.plaf.synth.SynthTextAreaUI;
 public class GreetingController {
     private static final String template = "Hello, %s!";
     private final AtomicLong counter = new AtomicLong(); // AtomicLong is used in multithreaded applications
+
+    private final StorageService storageService;
+
+    @Autowired
+    public GreetingController(StorageService storageService) {
+        this.storageService = storageService;
+    }
 
     @GetMapping("/greeting")
     public Greeting greeting(@RequestParam(value = "name", defaultValue = "World") String name) {
@@ -29,7 +38,7 @@ public class GreetingController {
     }
 
     @GetMapping("/get-html-from-url")
-    public String getHtmlFromUrl(@RequestParam(value = "url", defaultValue = "") String url) throws  Exception {
+    public Greeting getHtmlFromUrl(@RequestParam(value = "url", defaultValue = "") String url) throws  Exception {
 //        Document document = WebScraper.getDocument("https://www.instagram.com/reel/CpS6RIDjC7D/?utm_source=ig_web_copy_link");
 //        String htmlString = document.toString();
 ////        String heading = WebScraper.findHeading(document);
@@ -43,15 +52,23 @@ public class GreetingController {
 //        Instagram ig = new Instagram("https://www.instagram.com/reel/CpS6RIDjC7D/?utm_source=ig_web_copy_link");
 //        ig.start();
 
-        WebScraper.findVideoUrl();
-        return WebScraper.findVideoUrl();
+        WebScraper webScraper = new WebScraper();
+
+//        String videoUrl = webScraper.findVideoUrl("https://www.instagram.com/reel/CpS6RIDjC7D/?utm_source=ig_web_copy_link", storageService);
+        return new Greeting(counter.incrementAndGet(), String.format(template, "videoUrl"));
     }
 
 
-    @GetMapping("/get-video")
-    public InputStream getVideo() throws  Exception {
-        return WebScraper.LoadFile();
-    }
+//    @GetMapping("/get-video/{url:.+}")
+//    public ResponseEntity<Resource> getVideo(@PathVariable String url) throws  Exception {
+//        WebScraper webScraper = new WebScraper();
+//        return webScraper.findVideoUrl(url, storageService);
+//    }
 
+    @PostMapping(value = "/get-video")
+    public ResponseEntity<Resource> getVideo(@RequestBody JSONObject url) throws  Exception {
+        WebScraper webScraper = new WebScraper();
+        return webScraper.findVideoUrl(url.get("url").toString(), storageService);
+    }
 
 }

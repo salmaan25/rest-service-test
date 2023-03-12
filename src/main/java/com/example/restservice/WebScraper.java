@@ -1,5 +1,6 @@
 package com.example.restservice;
 
+import com.example.restservice.storage.StorageService;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.jayway.jsonpath.JsonPath;
@@ -18,9 +19,14 @@ import com.gargoylesoftware.htmlunit.html.DomNode;
 import com.gargoylesoftware.htmlunit.html.DomNodeList;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,11 +55,11 @@ public class WebScraper {
         return firstHeading.text();
     }
 
-    public static String findVideoUrl() throws Exception {
+    public ResponseEntity<Resource> findVideoUrl(String url, StorageService storageService) throws Exception {
         WebClient webClient = new WebClient();
         webClient.getOptions().setCssEnabled(false);
         webClient.getOptions().setJavaScriptEnabled(false);
-        HtmlPage myPage = webClient.getPage("https://www.instagram.com/reel/CpEquOwItqE/?igshid=YmMyMTA2M2Y=");
+        HtmlPage myPage = webClient.getPage(url);
 
         // convert page to generated HTML and convert to document
         Document doc = Jsoup.parse(myPage.asXml());
@@ -71,14 +77,20 @@ public class WebScraper {
         JSONParser parser = new JSONParser();
         JSONObject json = (JSONObject) parser.parse(scriptInnerHtml);
 
-        String url = ((JSONObject)((JSONArray)json.get("video")).get(0)).get("contentUrl").toString();
+        String videoUrl = ((JSONObject)((JSONArray)json.get("video")).get(0)).get("contentUrl").toString();
         webClient.close();
+//        return videoUrl;
+
+        URL vidUrl = new URL(videoUrl);
+        HttpURLConnection httpConnection = (HttpURLConnection) vidUrl.openConnection();
+        httpConnection.setRequestMethod("HEAD");
+        long removeFileSize = httpConnection.getContentLengthLong();
 
 
         AsyncHttpClient client = Dsl.asyncHttpClient();
-        FileOutputStream stream = new FileOutputStream("video2.mp4");
+        FileOutputStream stream = new FileOutputStream("video.mp4");
 
-        client.prepareGet(url).execute(new AsyncCompletionHandler<FileOutputStream>() {
+        client.prepareGet(videoUrl).execute(new AsyncCompletionHandler<FileOutputStream>() {
 
             @Override
             public State onBodyPartReceived(HttpResponseBodyPart bodyPart)
@@ -95,7 +107,14 @@ public class WebScraper {
             }
         });
 
-        return url;
+        while(removeFileSize > stream.getChannel().size()) {
+            System.out.println("copied " + (stream.getChannel().size()/removeFileSize) + "%");
+        }
+            Resource file = storageService.loadAsResource("video.mp4");
+            return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=\"" + file.getFilename() + "\"").body(file);
+
+//        return url;
 
     }
 
